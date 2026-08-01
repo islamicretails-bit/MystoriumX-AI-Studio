@@ -6,12 +6,16 @@
 # app/infrastructure/ml/musicgen_provider.py
 #
 # Responsibility:
-# AI cinematic music generation engine interface.
+# AI cinematic music generation engine.
 #
-# Compatible Architecture:
-# - Meta MusicGen
-# - AudioCraft
-# - HuggingFace Transformers
+# Features:
+# - MusicGen model integration
+# - Prompt based soundtrack generation
+# - Audio export
+# - Model resource handling
+#
+# Compatible:
+# Python 3.11
 #
 # ============================================================
 
@@ -19,60 +23,42 @@
 from __future__ import annotations
 
 
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, Any
+
+from typing import Optional
+
 
 import logging
 
 
-logger = logging.getLogger(
-    "MystoriumX.MusicGenProvider"
+
+import torch
+
+import torchaudio
+
+
+
+from app.core.exceptions import (
+
+    MusicGenerationError
+
 )
 
 
 
-# ============================================================
-# Generation Configuration
-# ============================================================
+from app.infrastructure.ml.model_loader import (
 
-@dataclass
-class MusicGenerationConfig:
-    """
-    Configuration for AI music generation.
-    """
+    model_loader
 
-    prompt: str
-
-    duration_seconds: int = 120
-
-    temperature: float = 1.0
-
-    guidance_scale: float = 3.0
-
-    sample_rate: int = 32000
-
-    output_format: str = "wav"
+)
 
 
 
-# ============================================================
-# Generation Result
-# ============================================================
+logger = logging.getLogger(
 
-@dataclass
-class MusicGenerationResult:
-    """
-    Stores generated music information.
-    """
+    "MystoriumX.MusicGen"
 
-    success: bool
-
-    audio_path: Optional[Path] = None
-
-    metadata: Dict[str, Any] = None
-
-    error: Optional[str] = None
+)
 
 
 
@@ -82,22 +68,17 @@ class MusicGenerationResult:
 
 class MusicGenProvider:
     """
-    AI Music Generation Provider.
+    AI music generation provider.
 
-    This module manages:
+    Responsible for:
 
-    - Model loading
-    - Prompt processing
-    - Audio generation
-    - File exporting
-
-
-    Future implementation:
-
-    - MusicGen Large
-    - AudioCraft
-    - HuggingFace Pipeline
-    - GPU acceleration
+    Prompt
+       |
+       ↓
+    MusicGen Model
+       |
+       ↓
+    Generated Audio
 
     """
 
@@ -105,70 +86,87 @@ class MusicGenProvider:
 
     def __init__(
         self,
-        model_name: str = "facebook/musicgen-medium"
+        model_name: str =
+        "facebook/musicgen-medium"
     ) -> None:
 
 
         self.model_name = model_name
 
+
         self.model = None
+
 
         self.processor = None
 
 
+
         logger.info(
-            f"MusicGen Provider initialized: {model_name}"
+
+            "MusicGen Provider initialized"
+
         )
 
 
 
     # ========================================================
-    # Model Loading
+    # Load Model
     # ========================================================
 
-    def load_model(
+    def load(
         self
     ) -> None:
 
         """
-        Load AI music generation model.
-
-        Actual loading will connect with:
-
-        - transformers
-        - audiocraft
-        - torch
-
+        Load MusicGen model.
         """
 
 
         try:
 
-            logger.info(
-                "Loading MusicGen model..."
+
+            self.model = (
+
+                model_loader
+                .load_transformer_model(
+
+                    self.model_name
+
+                )
+
             )
 
 
-            # Future:
+            self.processor = (
 
-            # self.model = MusicGen.get_pretrained(
-            #     self.model_name
-            # )
+                model_loader
+                .get_processor(
+
+                    self.model_name
+
+                )
+
+            )
 
 
             logger.info(
-                "MusicGen model ready"
+
+                "MusicGen model loaded"
+
             )
 
 
 
         except Exception as error:
 
-            logger.exception(
-                "Model loading failed"
-            )
 
-            raise error
+            raise MusicGenerationError(
+
+                str(error),
+
+                "MUSICGEN_LOAD_FAILED"
+
+            )
 
 
 
@@ -178,78 +176,124 @@ class MusicGenProvider:
 
     def generate(
         self,
-        config: MusicGenerationConfig
-    ) -> MusicGenerationResult:
+        prompt: str,
+        duration_seconds: int,
+        output_path: Path
+    ) -> Path:
 
         """
         Generate cinematic soundtrack.
 
-        Args:
-
-            config:
-                Music generation settings.
-
-        Returns:
-
-            MusicGenerationResult
-
+        Note:
+        Requires MusicGen compatible model.
         """
+
+
+        if self.model is None:
+
+
+            self.load()
+
 
 
         try:
 
-            if self.model is None:
 
-                self.load_model()
+            logger.info(
+
+                "Generating music..."
+
+            )
+
+
+
+            inputs = self.processor(
+
+                text=[prompt],
+
+                padding=True,
+
+                return_tensors="pt"
+
+            )
+
+
+
+            inputs = {
+
+
+                key:
+
+                value.to(
+
+                    model_loader.device
+
+                )
+
+                for key, value in inputs.items()
+
+            }
+
+
+
+            with torch.no_grad():
+
+
+                audio_values = (
+
+                    self.model.generate(
+
+                        **inputs,
+
+                        max_new_tokens=
+
+                        duration_seconds * 50
+
+                    )
+
+                )
+
+
+
+            waveform = (
+
+                audio_values[0]
+
+                .cpu()
+
+            )
+
+
+
+            sample_rate = (
+
+                32000
+
+            )
+
+
+
+            torchaudio.save(
+
+                str(output_path),
+
+                waveform,
+
+                sample_rate
+
+            )
 
 
 
             logger.info(
-                "Starting AI music generation"
-            )
 
-
-            logger.info(
-                f"Prompt: {config.prompt}"
-            )
-
-
-            # ------------------------------------------------
-            # Future Real Implementation:
-            #
-            # wav = self.model.generate(
-            #       descriptions=[config.prompt]
-            # )
-            #
-            # save_audio(wav)
-            #
-            # ------------------------------------------------
-
-
-            generated_file = None
-
-
-
-            return MusicGenerationResult(
-
-                success=True,
-
-                audio_path=generated_file,
-
-                metadata={
-
-                    "model":
-                        self.model_name,
-
-                    "duration":
-                        config.duration_seconds,
-
-                    "prompt":
-                        config.prompt
-
-                }
+                f"Music exported: {output_path}"
 
             )
+
+
+
+            return output_path
 
 
 
@@ -257,73 +301,77 @@ class MusicGenProvider:
 
 
             logger.exception(
+
                 "Music generation failed"
+
             )
 
 
-            return MusicGenerationResult(
+            raise MusicGenerationError(
 
-                success=False,
+                str(error),
 
-                error=str(error)
+                "MUSIC_GENERATION_FAILED"
 
             )
 
 
 
     # ========================================================
-    # Prompt Validation
+    # Check Status
     # ========================================================
 
-    def validate_prompt(
-        self,
-        prompt: str
+    def is_ready(
+        self
     ) -> bool:
 
         """
-        Validate music generation prompt.
+        Check provider availability.
         """
 
 
-        if not prompt:
+        return (
 
-            return False
+            self.model is not None
 
-
-        if len(prompt.strip()) < 5:
-
-            return False
-
-
-        return True
+        )
 
 
 
     # ========================================================
-    # Model Information
+    # Release Model
     # ========================================================
 
-    def get_model_info(
+    def unload(
         self
-    ) -> Dict[str, Any]:
+    ) -> None:
 
         """
-        Return provider information.
+        Release model resources.
         """
 
 
-        return {
+        self.model = None
 
-            "provider":
-                "MusicGen",
 
-            "model":
-                self.model_name,
+        self.processor = None
 
-            "architecture":
-                "AudioCraft Compatible",
 
-            "status":
-                "Ready"
 
-        }
+        model_loader.clear_memory()
+
+
+
+        logger.info(
+
+            "MusicGen resources released"
+
+        )
+
+
+
+# ============================================================
+# Global Instance
+# ============================================================
+
+musicgen_provider = MusicGenProvider()
