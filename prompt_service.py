@@ -1,50 +1,65 @@
 # ============================================================
 # MystoriumX AI Studio
-# Service Layer - AI Prompt Enhancement Service
+# Service Layer - Cinematic Prompt Service
 #
 # File:
 # app/services/prompt_service.py
 #
 # Responsibility:
-# Converts basic user ideas into professional
-# cinematic AI music generation prompts.
+# Generate professional cinematic AI music prompts.
+#
+# Flow:
+#
+# Scene Analysis
+#       +
+# User Idea
+#       |
+#       ↓
+# Prompt Enhancement
+#       |
+#       ↓
+# MusicGen Prompt
+#
+# Compatible:
+# Python 3.11
+#
 # ============================================================
 
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Dict, List
+
+from typing import List, Dict, Any, Optional
+
+
 import logging
 
 
-logger = logging.getLogger(
-    "MystoriumX.PromptService"
+
+from app.domain.entities import SceneEntity
+
+
+from app.infrastructure.ml.prompt_enhancer import (
+
+    PromptEnhancer
+
 )
 
 
 
-# ============================================================
-# Prompt Result Model
-# ============================================================
+from app.core.exceptions import (
 
-@dataclass
-class EnhancedPrompt:
-    """
-    Stores enhanced cinematic prompt data.
-    """
+    MusicGenerationError
 
-    original_prompt: str
+)
 
-    enhanced_prompt: str
 
-    mood: str
 
-    genre: str
+logger = logging.getLogger(
 
-    instruments: List[str]
+    "MystoriumX.PromptService"
 
-    intensity: int
+)
 
 
 
@@ -54,368 +69,293 @@ class EnhancedPrompt:
 
 class PromptService:
     """
-    AI Prompt Enhancement Engine.
+    Controls cinematic prompt generation.
 
     Responsibilities:
 
-    - Expand simple ideas
-    - Add cinematic language
-    - Select musical direction
-    - Prepare MusicGen compatible prompts
+    - Analyze scene information
+    - Understand documentary mood
+    - Enhance user prompts
+    - Create MusicGen-ready prompts
 
-    Future integrations:
-
-    - LLM API
-    - Local Llama models
-    - HuggingFace Transformers
     """
 
 
 
     def __init__(
-        self
+        self,
+        enhancer: Optional[PromptEnhancer] = None
     ) -> None:
 
+
+        self.enhancer = (
+
+            enhancer
+
+            if enhancer
+
+            else PromptEnhancer()
+
+        )
+
+
         logger.info(
-            "PromptService initialized"
+
+            "Prompt Service initialized"
+
         )
 
 
 
     # ========================================================
-    # Main Prompt Enhancement
+    # Generate Prompt
     # ========================================================
 
-    def enhance_prompt(
+    def generate_prompt(
         self,
         user_prompt: str,
-        style: str = "Hollywood Documentary",
-        intensity: int = 7
-    ) -> EnhancedPrompt:
-
-        """
-        Convert user description into
-        cinematic music prompt.
-
-        Args:
-
-            user_prompt:
-                User creative idea.
-
-            style:
-                Documentary music style.
-
-            intensity:
-                Emotional intensity level.
-
-        Returns:
-
-            EnhancedPrompt object.
-        """
-
-
-        if not user_prompt.strip():
-
-            raise ValueError(
-                "Prompt cannot be empty."
-            )
-
-
-
-        mood = (
-            self._detect_mood(
-                user_prompt
-            )
-        )
-
-
-        genre = (
-            self._select_genre(
-                style
-            )
-        )
-
-
-        instruments = (
-            self._select_instruments(
-                mood
-            )
-        )
-
-
-        enhanced = (
-            self._build_cinematic_prompt(
-
-                user_prompt,
-
-                mood,
-
-                genre,
-
-                instruments,
-
-                intensity
-
-            )
-        )
-
-
-        return EnhancedPrompt(
-
-            original_prompt=user_prompt,
-
-            enhanced_prompt=enhanced,
-
-            mood=mood,
-
-            genre=genre,
-
-            instruments=instruments,
-
-            intensity=intensity
-
-        )
-
-
-
-    # ========================================================
-    # Mood Detection
-    # ========================================================
-
-    def _detect_mood(
-        self,
-        prompt: str
+        scenes: List[SceneEntity]
     ) -> str:
 
         """
-        Basic mood classification.
-
-        Future:
-        Transformer emotion model.
+        Create final cinematic music prompt.
         """
 
 
-        keywords = {
-
-            "dark":
-                "dark mysterious",
-
-            "mystery":
-                "mysterious suspense",
-
-            "sad":
-                "emotional dramatic",
-
-            "epic":
-                "heroic powerful",
-
-            "ancient":
-                "ancient historical",
-
-            "space":
-                "cosmic futuristic"
-
-        }
+        try:
 
 
-        text = prompt.lower()
+            context = (
 
+                self._build_scene_context(
 
-        for key, value in keywords.items():
+                    scenes
 
-            if key in text:
+                )
 
-                return value
+            )
 
 
 
-        return "cinematic emotional"
+            enhanced = (
+
+                self.enhancer.enhance_prompt(
+
+                    user_prompt,
+
+                    context
+
+                )
+
+            )
+
+
+
+            final_prompt = (
+
+                self.enhancer.create_musicgen_prompt(
+
+                    enhanced
+
+                )
+
+            )
+
+
+
+            logger.info(
+
+                "Cinematic prompt generated"
+
+            )
+
+
+
+            return final_prompt
+
+
+
+        except Exception as error:
+
+
+            logger.exception(
+
+                "Prompt generation failed"
+
+            )
+
+
+            raise MusicGenerationError(
+
+                str(error),
+
+                "PROMPT_GENERATION_FAILED"
+
+            )
 
 
 
     # ========================================================
-    # Genre Selection
+    # Build Scene Context
     # ========================================================
 
-    def _select_genre(
+    def _build_scene_context(
         self,
-        style: str
-    ) -> str:
+        scenes: List[SceneEntity]
+    ) -> Dict[str, Any]:
 
         """
-        Select soundtrack genre.
-        """
-
-
-        mapping = {
-
-            "Hollywood Documentary":
-                "cinematic orchestral documentary",
-
-            "Dark Mystery":
-                "dark ambient thriller",
-
-            "Epic Historical":
-                "epic orchestral score",
-
-            "Nature Documentary":
-                "organic atmospheric cinematic",
-
-            "Sci-Fi Atmosphere":
-                "futuristic electronic cinematic"
-
-        }
-
-
-        return mapping.get(
-
-            style,
-
-            "cinematic documentary"
-
-        )
-
-
-
-    # ========================================================
-    # Instrument Selection
-    # ========================================================
-
-    def _select_instruments(
-        self,
-        mood: str
-    ) -> List[str]:
-
-        """
-        Choose instruments based on mood.
+        Convert scene analysis into AI context.
         """
 
 
-        if "dark" in mood:
-
-            return [
-
-                "deep cello",
-
-                "low strings",
-
-                "dark atmospheric pads",
-
-                "cinematic percussion"
-
-            ]
+        if not scenes:
 
 
-        if "epic" in mood:
+            return {
 
-            return [
 
-                "full orchestra",
+                "style":
 
-                "brass",
+                    "documentary",
 
-                "powerful drums",
 
-                "choir"
+                "emotion":
 
-            ]
+                    "mysterious",
+
+
+                "intensity":
+
+                    5
+
+            }
 
 
 
-        return [
+        moods = [
 
-            "piano",
+            scene.mood
 
-            "strings",
+            for scene in scenes
 
-            "ambient textures",
-
-            "soft percussion"
+            if scene.mood
 
         ]
 
 
 
-    # ========================================================
-    # Cinematic Prompt Builder
-    # ========================================================
+        average_intensity = (
 
-    def _build_cinematic_prompt(
-        self,
-        original: str,
-        mood: str,
-        genre: str,
-        instruments: List[str],
-        intensity: int
-    ) -> str:
+            sum(
 
-        """
-        Creates final professional prompt.
-        """
+                scene.intensity
 
+                for scene in scenes
 
-        instrument_text = ", ".join(
-            instruments
-        )
+            )
 
+            /
 
-        return (
-
-            f"{genre} soundtrack, "
-
-            f"{mood} atmosphere, "
-
-            f"based on: {original}. "
-
-            f"Featuring {instrument_text}. "
-
-            f"Emotional intensity level {intensity}/10. "
-
-            "Professional Hollywood documentary "
-
-            "music composition with cinematic "
-
-            "storytelling, dynamic progression, "
-
-            "and immersive sound design."
+            len(scenes)
 
         )
 
 
 
-    # ========================================================
-    # Export Dictionary
-    # ========================================================
+        dominant_mood = (
 
-    def to_dict(
-        self,
-        prompt: EnhancedPrompt
-    ) -> Dict:
+            max(
 
-        """
-        Convert enhanced prompt into
-        serializable format.
-        """
+                set(moods),
+
+                key=moods.count
+
+            )
+
+            if moods
+
+            else
+
+            "mysterious"
+
+        )
+
 
 
         return {
 
-            "original":
-                prompt.original_prompt,
 
-            "enhanced":
-                prompt.enhanced_prompt,
+            "style":
 
-            "mood":
-                prompt.mood,
+                "cinematic documentary",
 
-            "genre":
-                prompt.genre,
 
-            "instruments":
-                prompt.instruments,
+            "emotion":
+
+                dominant_mood,
+
 
             "intensity":
-                prompt.intensity
+
+                round(
+
+                    average_intensity,
+
+                    1
+
+                )
 
         }
+
+
+
+    # ========================================================
+    # Generate Multiple Variations
+    # ========================================================
+
+    def generate_variations(
+        self,
+        prompt: str,
+        scenes: List[SceneEntity],
+        count: int = 3
+    ) -> List[str]:
+
+        """
+        Generate multiple soundtrack ideas.
+        """
+
+
+        results = []
+
+
+
+        for index in range(count):
+
+
+            variation = self.generate_prompt(
+
+                f"{prompt} variation {index + 1}",
+
+                scenes
+
+            )
+
+
+            results.append(
+
+                variation
+
+            )
+
+
+
+        return results
+
+
+
+# ============================================================
+# Global Instance
+# ============================================================
+
+prompt_service = PromptService()
