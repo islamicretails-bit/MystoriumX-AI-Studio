@@ -413,3 +413,439 @@ def render_sidebar() -> None:
 # =============================================================================
 initialize_session_state()
 render_sidebar()
+
+# ============================================================
+# MystoriumX AI Studio
+# Streamlit Dashboard - Part 2
+# Main Dashboard Interface Components
+# ============================================================
+
+import streamlit as st
+from pathlib import Path
+from datetime import datetime
+
+
+# ============================================================
+# Main Dashboard Hero Section
+# ============================================================
+
+st.markdown(
+    """
+    <div class="hero-container">
+        <h1>🎬 MystoriumX AI Studio</h1>
+        <h3>
+            Hollywood-Grade AI Documentary Audio Intelligence Platform
+        </h3>
+
+        <p>
+            Transform documentary footage into cinematic soundscapes using
+            Computer Vision, Generative AI Music, and Professional Audio Mastering.
+        </p>
+
+        <div class="hero-status">
+            🎥 Scene Understanding &nbsp; | &nbsp;
+            🎼 AI Music Generation &nbsp; | &nbsp;
+            🎚️ Audio Mastering
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# Project Workspace Header
+# ============================================================
+
+st.markdown(
+    """
+    <div class="section-title">
+        🚀 Documentary AI Production Workspace
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ============================================================
+# Upload Interface
+# ============================================================
+
+upload_col1, upload_col2, upload_col3 = st.columns(3)
+
+
+# ------------------------------------------------------------
+# Video Upload
+# ------------------------------------------------------------
+
+with upload_col1:
+
+    st.markdown(
+        """
+        <div class="glass-card">
+            <h3>🎥 Documentary Video</h3>
+            <p>
+                Upload your documentary footage for AI scene analysis.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    video_file = st.file_uploader(
+        "Upload Video",
+        type=[
+            "mp4",
+            "mov",
+            "avi",
+            "mkv",
+            "webm"
+        ],
+        key="video_upload"
+    )
+
+    if video_file:
+
+        st.session_state["video_file"] = video_file
+
+        st.success(
+            f"Video loaded: {video_file.name}"
+        )
+
+
+# ------------------------------------------------------------
+# Script Upload
+# ------------------------------------------------------------
+
+with upload_col2:
+
+    st.markdown(
+        """
+        <div class="glass-card">
+            <h3>📜 Documentary Script</h3>
+            <p>
+                Upload narration script or story structure.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    script_file = st.file_uploader(
+        "Upload Script",
+        type=[
+            "txt",
+            "pdf",
+            "docx",
+            "md"
+        ],
+        key="script_upload"
+    )
+
+    if script_file:
+
+        st.session_state["script_file"] = script_file
+
+        st.success(
+            f"Script loaded: {script_file.name}"
+        )
+
+
+# ------------------------------------------------------------
+# Narration Upload
+# ------------------------------------------------------------
+
+with upload_col3:
+
+    st.markdown(
+        """
+        <div class="glass-card">
+            <h3>🎙️ Voice Narration</h3>
+            <p>
+                Upload professional voiceover audio.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    narration_file = st.file_uploader(
+        "Upload Voiceover",
+        type=[
+            "wav",
+            "mp3",
+            "flac",
+            "m4a"
+        ],
+        key="narration_upload"
+    )
+
+    if narration_file:
+
+        st.session_state["narration_file"] = narration_file
+
+        st.success(
+            f"Narration loaded: {narration_file.name}"
+        )
+
+
+# ============================================================
+# AI Prompt Input Area
+# ============================================================
+
+st.markdown(
+    """
+    <div class="section-title">
+        🧠 AI Creative Direction
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+prompt_col1, prompt_col2 = st.columns(
+    [
+        2,
+        1
+    ]
+)
+
+
+with prompt_col1:
+
+    cinematic_prompt = st.text_area(
+        "Describe your desired cinematic atmosphere",
+        value=st.session_state.get(
+            "cinematic_prompt",
+            ""
+        ),
+        placeholder=(
+            "Example: "
+            "Dark mysterious documentary score with "
+            "deep orchestral tension, emotional strings, "
+            "ancient mystery atmosphere..."
+        ),
+        height=160,
+        key="cinematic_prompt"
+    )
+
+
+with prompt_col2:
+
+    st.markdown(
+        """
+        <div class="glass-card">
+            <h4>AI Prompt Enhancement</h4>
+
+            <p>
+            The AI engine will automatically enhance your
+            description into a professional cinematic
+            music generation prompt.
+            </p>
+
+            <ul>
+                <li>Emotion Detection</li>
+                <li>Genre Expansion</li>
+                <li>Instrument Selection</li>
+                <li>Cinematic Structure</li>
+            </ul>
+
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+# ============================================================
+# Project Configuration Panel
+# ============================================================
+
+st.markdown(
+    """
+    <div class="section-title">
+        ⚙️ Production Configuration
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+config_col1, config_col2, config_col3, config_col4 = st.columns(4)
+
+
+with config_col1:
+
+    duration_mode = st.selectbox(
+        "Music Duration",
+        [
+            "Match Video Length",
+            "Short Cinematic Track",
+            "Custom Duration"
+        ],
+        key="duration_mode"
+    )
+
+
+with config_col2:
+
+    music_style = st.selectbox(
+        "Music Style",
+        [
+            "Hollywood Documentary",
+            "Dark Mystery",
+            "Epic Historical",
+            "Emotional Storytelling",
+            "Sci-Fi Atmosphere",
+            "Nature Documentary"
+        ],
+        key="music_style"
+    )
+
+
+with config_col3:
+
+    intensity_level = st.slider(
+        "Emotional Intensity",
+        min_value=1,
+        max_value=10,
+        value=7,
+        key="intensity_level"
+    )
+
+
+with config_col4:
+
+    output_format = st.selectbox(
+        "Export Format",
+        [
+            "WAV Professional",
+            "MP3 Creator",
+            "FLAC Lossless"
+        ],
+        key="output_format"
+    )
+
+
+# ============================================================
+# Advanced Pipeline Options
+# ============================================================
+
+with st.expander(
+    "🎛️ Advanced AI Pipeline Options"
+):
+
+    advanced_col1, advanced_col2 = st.columns(2)
+
+
+    with advanced_col1:
+
+        enable_scene_analysis = st.checkbox(
+            "Enable Computer Vision Scene Analysis",
+            value=True,
+            key="scene_analysis"
+        )
+
+
+        enable_prompt_enhancement = st.checkbox(
+            "Enable AI Prompt Enhancement",
+            value=True,
+            key="prompt_enhancement"
+        )
+
+
+    with advanced_col2:
+
+        enable_mastering = st.checkbox(
+            "Enable Professional Audio Mastering",
+            value=True,
+            key="mastering"
+        )
+
+
+        generate_waveform = st.checkbox(
+            "Generate Audio Analytics & Waveform",
+            value=True,
+            key="waveform"
+        )
+
+
+# ============================================================
+# Generate Button Layout
+# ============================================================
+
+st.markdown(
+    """
+    <div class="section-title">
+        ▶️ Start AI Production
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+button_col1, button_col2, button_col3 = st.columns(
+    [
+        1,
+        2,
+        1
+    ]
+)
+
+
+with button_col2:
+
+    generate_clicked = st.button(
+        "🚀 GENERATE CINEMATIC SOUNDTRACK",
+        use_container_width=True,
+        key="generate_button"
+    )
+
+
+if generate_clicked:
+
+    required_files = [
+        st.session_state.get("video_file"),
+        st.session_state.get("narration_file")
+    ]
+
+    missing_files = any(
+        item is None
+        for item in required_files
+    )
+
+
+    if missing_files:
+
+        st.warning(
+            """
+            Please upload at least:
+            
+            🎥 Documentary Video
+            
+            🎙️ Voice Narration
+            
+            before starting generation.
+            """
+        )
+
+    else:
+
+        st.session_state["project_started"] = True
+
+        st.success(
+            "AI Documentary Pipeline Initialized Successfully."
+        )
+
+        st.info(
+            f"""
+            Project Started:
+            
+            Style: {music_style}
+            
+            Intensity: {intensity_level}/10
+            
+            Output: {output_format}
+            
+            Time: {datetime.now().strftime("%H:%M:%S")}
+            """
+        )
