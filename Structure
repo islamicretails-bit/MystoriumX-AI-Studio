@@ -1,0 +1,136 @@
+MystoriumX-AI-Studio/
+│
+├── .github/
+│   └── workflows/
+│       ├── ci.yml
+│       └── docker-publish.yml
+│
+├── assets/
+│   ├── logo.png
+│   ├── favicon.ico
+│   ├── styles.css
+│   └── icons/
+│
+├── configs/
+│   ├── settings.yaml
+│   ├── logging.yaml
+│   └── default.yaml
+│
+├── data/
+│   ├── temp/
+│   │   └── .gitkeep
+│   ├── uploads/
+│   │   └── .gitkeep
+│   ├── exports/
+│   │   └── .gitkeep
+│   └── cache/
+│       └── .gitkeep
+│
+├── docs/
+│   ├── architecture.md
+│   ├── api.md
+│   └── user-guide.md
+│
+├── models/
+│   ├── __init__.py
+│   ├── audio.py
+│   ├── scene.py
+│   ├── project.py
+│   └── user_input.py
+│
+├── src/
+│   ├── __init__.py
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── config.py
+│   │   ├── constants.py
+│   │   ├── logger.py
+│   │   ├── exceptions.py
+│   │   └── security.py
+│   │
+│   ├── infrastructure/
+│   │   ├── __init__.py
+│   │   │
+│   │   ├── audio/
+│   │   │   ├── __init__.py
+│   │   │   ├── audio_processor.py
+│   │   │   ├── mastering_engine.py
+│   │   │   ├── waveform_generator.py
+│   │   │   ├── export_engine.py
+│   │   │   └── ffmpeg_wrapper.py
+│   │   │
+│   │   ├── vision/
+│   │   │   ├── __init__.py
+│   │   │   ├── scene_detector.py
+│   │   │   ├── frame_extractor.py
+│   │   │   └── image_analyzer.py
+│   │   │
+│   │   ├── ai/
+│   │   │   ├── __init__.py
+│   │   │   ├── model_loader.py
+│   │   │   ├── music_generator.py
+│   │   │   ├── prompt_enhancer.py
+│   │   │   └── music_prompt_builder.py
+│   │   │
+│   │   └── storage/
+│   │       ├── __init__.py
+│   │       └── local_storage.py
+│   │
+│   ├── services/
+│   │   ├── __init__.py
+│   │   ├── orchestrator.py
+│   │   ├── scene_service.py
+│   │   ├── prompt_service.py
+│   │   ├── music_service.py
+│   │   └── export_service.py
+│   │
+│   ├── ui/
+│   │   ├── __init__.py
+│   │   ├── state.py
+│   │   ├── theme.py
+│   │   │
+│   │   ├── components/
+│   │   │   ├── __init__.py
+│   │   │   ├── upload_zone.py
+│   │   │   ├── audio_player.py
+│   │   │   ├── waveform_viewer.py
+│   │   │   ├── progress_tracker.py
+│   │   │   └── log_viewer.py
+│   │   │
+│   │   └── views/
+│   │       ├── __init__.py
+│   │       ├── main_tab.py
+│   │       ├── results_tab.py
+│   │       └── advanced_tab.py
+│   │
+│   └── utils/
+│       ├── __init__.py
+│       ├── file_utils.py
+│       ├── audio_utils.py
+│       ├── video_utils.py
+│       └── helpers.py
+│
+├── tests/
+│   ├── __init__.py
+│   ├── conftest.py
+│   │
+│   ├── unit/
+│   │   ├── test_audio.py
+│   │   ├── test_scene.py
+│   │   ├── test_models.py
+│   │   └── test_prompt.py
+│   │
+│   └── integration/
+│       ├── test_pipeline.py
+│       └── test_scene_detector.py
+│
+├── .dockerignore
+├── .gitignore
+├── Dockerfile
+├── LICENSE
+├── Makefile
+├── pyproject.toml
+├── requirements.txt
+├── streamlit_app.py
+└── README.md
