@@ -6,352 +6,533 @@
 # app/services/scene_service.py
 #
 # Responsibility:
-# Documentary video scene understanding pipeline.
+# Coordinate video scene analysis workflow.
+#
+# Flow:
+#
+# Video
+#   |
+#   ↓
+# OpenCV Detector
+#   |
+#   ↓
+# Scene Entities
+#   |
+#   ↓
+# Pipeline
+#
+# Compatible:
+# Python 3.11
+#
 # ============================================================
 
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+
 from pathlib import Path
+
 from typing import List, Dict, Any
+
+
 import logging
 
 
+import uuid
+
+
+
+from app.domain.entities import (
+
+    SceneEntity
+
+)
+
+
+
+from app.domain.enums import (
+
+    SceneMood
+
+)
+
+
+
+from app.core.exceptions import (
+
+    SceneDetectionError
+
+)
+
+
+
+from app.infrastructure.cv.opencv_detector import (
+
+    OpenCVDetector
+
+)
+
+
+
 logger = logging.getLogger(
+
     "MystoriumX.SceneService"
+
 )
 
 
 
 # ============================================================
-# Scene Entity
-# ============================================================
-
-@dataclass
-class SceneData:
-    """
-    Represents detected documentary scene information.
-    """
-
-    start_time: float
-
-    end_time: float
-
-    duration: float
-
-    frame_index: int
-
-    mood: str
-
-    intensity: float
-
-    description: str
-
-
-
-# ============================================================
-# Scene Analysis Service
+# Scene Service
 # ============================================================
 
 class SceneService:
     """
-    Handles documentary video scene analysis.
+    Professional scene analysis service.
 
-    Future integrations:
+    Responsible for:
 
-    - OpenCV
-    - Vision Transformers
-    - HuggingFace image models
-    - CLIP based scene understanding
+    - Video scene detection
+    - Scene classification
+    - Metadata generation
+    - Domain entity creation
+
     """
 
 
 
     def __init__(
         self,
-        detector=None
+        detector: OpenCVDetector | None = None
     ) -> None:
 
-        """
-        Initialize scene analysis service.
 
-        Args:
-            detector:
-                Optional OpenCV detector instance.
-        """
+        self.detector = (
 
+            detector
 
-        self.detector = detector
+            if detector
+
+            else OpenCVDetector()
+
+        )
+
 
 
         logger.info(
-            "SceneService initialized"
+
+            "Scene Service initialized"
+
         )
 
 
 
     # ========================================================
-    # Public Method
+    # Analyze Video
     # ========================================================
 
     def analyze_video(
         self,
         video_path: Path
-    ) -> List[SceneData]:
+    ) -> List[SceneEntity]:
 
         """
-        Analyze complete documentary video.
-
-        Args:
-            video_path:
-                Path to video file.
+        Analyze documentary video.
 
         Returns:
-            List of detected scenes.
-        """
-
-
-        self._validate_video(
-            video_path
-        )
-
-
-        logger.info(
-            f"Analyzing video: {video_path.name}"
-        )
-
-
-        try:
-
-            scenes = (
-                self._extract_scenes(
-                    video_path
-                )
-            )
-
-
-            enriched_scenes = []
-
-
-            for scene in scenes:
-
-                enriched_scenes.append(
-                    self._analyze_scene_context(
-                        scene
-                    )
-                )
-
-
-            return enriched_scenes
-
-
-
-        except Exception as error:
-
-            logger.exception(
-                "Scene analysis failed"
-            )
-
-            raise error
-
-
-
-    # ========================================================
-    # Validation
-    # ========================================================
-
-    def _validate_video(
-        self,
-        video_path: Path
-    ) -> None:
-
-        """
-        Validate input video.
+            List of SceneEntity objects.
         """
 
 
         if not video_path.exists():
 
-            raise FileNotFoundError(
-                f"Video not found: {video_path}"
-            )
+            raise SceneDetectionError(
 
+                "Video file not found",
 
-        supported_formats = [
+                "VIDEO_NOT_FOUND"
 
-            ".mp4",
-            ".mov",
-            ".avi",
-            ".mkv"
-
-        ]
-
-
-        if video_path.suffix.lower() not in supported_formats:
-
-            raise ValueError(
-                "Unsupported video format"
             )
 
 
 
-    # ========================================================
-    # Scene Extraction
-    # ========================================================
-
-    def _extract_scenes(
-        self,
-        video_path: Path
-    ) -> List[Dict[str, Any]]:
-
-        """
-        Detect scene boundaries.
-
-        Future:
-        OpenCV histogram comparison
-        or deep learning detector.
-        """
+        try:
 
 
-        logger.info(
-            "Extracting scene boundaries"
-        )
+            logger.info(
 
+                f"Analyzing video: {video_path}"
 
-        # Temporary architecture placeholder.
-        # Real OpenCV implementation will connect here.
-
-
-        return [
-
-            {
-
-                "start_time": 0.0,
-
-                "end_time": 10.0,
-
-                "frame_index": 0
-
-            }
-
-        ]
+            )
 
 
 
-    # ========================================================
-    # Scene Understanding
-    # ========================================================
+            raw_scenes = (
 
-    def _analyze_scene_context(
-        self,
-        scene: Dict[str, Any]
-    ) -> SceneData:
+                self.detector
+                .detect_scenes(
 
-        """
-        Understand emotional context.
+                    video_path
 
-        Future:
-
-        - Image caption model
-        - CLIP
-        - Vision Transformer
-        - Emotion classifier
-
-        """
-
-
-        duration = (
-
-            scene["end_time"]
-
-            -
-
-            scene["start_time"]
-
-        )
-
-
-        return SceneData(
-
-            start_time=
-                scene["start_time"],
-
-
-            end_time=
-                scene["end_time"],
-
-
-            duration=
-                duration,
-
-
-            frame_index=
-                scene["frame_index"],
-
-
-            mood=
-                "mysterious",
-
-
-            intensity=
-                7.5,
-
-
-            description=
-                (
-                    "Cinematic documentary scene "
-                    "requiring atmospheric score."
                 )
 
+            )
+
+
+
+            scenes = (
+
+                self._convert_to_entities(
+
+                    raw_scenes
+
+                )
+
+            )
+
+
+
+            logger.info(
+
+                f"Detected {len(scenes)} scenes"
+
+            )
+
+
+
+            return scenes
+
+
+
+        except SceneDetectionError:
+
+
+            raise
+
+
+
+        except Exception as error:
+
+
+            logger.exception(
+
+                "Scene analysis failed"
+
+            )
+
+
+            raise SceneDetectionError(
+
+                str(error),
+
+                "SCENE_ANALYSIS_FAILED"
+
+            )
+
+
+
+    # ========================================================
+    # Convert Detector Output
+    # ========================================================
+
+    def _convert_to_entities(
+        self,
+        detected_scenes: List[Dict[str, Any]]
+    ) -> List[SceneEntity]:
+
+        """
+        Convert CV output into domain objects.
+        """
+
+
+        scene_entities: List[SceneEntity] = []
+
+
+
+        for index, scene in enumerate(
+
+            detected_scenes
+
+        ):
+
+
+
+            start_time = float(
+
+                scene.get(
+
+                    "start_time",
+
+                    0
+
+                )
+
+            )
+
+
+
+            end_time = float(
+
+                scene.get(
+
+                    "end_time",
+
+                    0
+
+                )
+
+            )
+
+
+
+            duration = (
+
+                end_time
+
+                -
+
+                start_time
+
+            )
+
+
+
+            mood = (
+
+                self._detect_mood(
+
+                    scene
+
+                )
+
+            )
+
+
+
+            entity = SceneEntity(
+
+                scene_id=(
+
+                    f"scene_"
+
+                    f"{uuid.uuid4().hex[:8]}"
+
+                ),
+
+                start_time=start_time,
+
+                end_time=end_time,
+
+                duration=max(
+
+                    duration,
+
+                    0
+
+                ),
+
+                confidence=float(
+
+                    scene.get(
+
+                        "confidence",
+
+                        0.0
+
+                    )
+
+                ),
+
+                mood=mood.value,
+
+                intensity=float(
+
+                    scene.get(
+
+                        "intensity",
+
+                        0.0
+
+                    )
+
+                ),
+
+                description=scene.get(
+
+                    "description"
+
+                )
+
+            )
+
+
+
+            scene_entities.append(
+
+                entity
+
+            )
+
+
+
+        return scene_entities
+
+
+
+    # ========================================================
+    # Mood Detection
+    # ========================================================
+
+    def _detect_mood(
+        self,
+        scene_data: Dict[str, Any]
+    ) -> SceneMood:
+
+        """
+        Determine cinematic mood.
+
+        Future:
+        Can connect Vision Transformer model.
+        """
+
+
+        provided_mood = scene_data.get(
+
+            "mood"
+
         )
 
 
 
+        if provided_mood:
+
+
+            try:
+
+                return SceneMood(
+
+                    provided_mood.lower()
+
+                )
+
+
+            except ValueError:
+
+
+                pass
+
+
+
+        intensity = float(
+
+            scene_data.get(
+
+                "intensity",
+
+                0
+
+            )
+
+        )
+
+
+
+        if intensity >= 8:
+
+
+            return SceneMood.ACTION
+
+
+
+        if intensity >= 5:
+
+
+            return SceneMood.TENSE
+
+
+
+        return SceneMood.UNKNOWN
+
+
+
     # ========================================================
-    # Export Metadata
+    # Generate Scene Summary
     # ========================================================
 
-    def export_scene_metadata(
+    def create_summary(
         self,
-        scenes: List[SceneData]
-    ) -> List[Dict[str, Any]]:
+        scenes: List[SceneEntity]
+    ) -> Dict[str, Any]:
 
         """
-        Convert scene objects into
-        serializable dictionaries.
+        Generate scene analytics summary.
         """
 
 
-        return [
-
-            {
-
-                "start":
-                    scene.start_time,
+        if not scenes:
 
 
-                "end":
-                    scene.end_time,
+            return {
 
 
-                "duration":
-                    scene.duration,
+                "total_scenes": 0,
 
 
-                "mood":
-                    scene.mood,
-
-
-                "intensity":
-                    scene.intensity,
-
-
-                "description":
-                    scene.description
+                "average_intensity": 0
 
             }
+
+
+
+        total_intensity = sum(
+
+            scene.intensity
 
             for scene in scenes
 
-        ]
+        )
+
+
+
+        return {
+
+
+            "total_scenes":
+
+                len(scenes),
+
+
+            "total_duration":
+
+                sum(
+
+                    scene.duration
+
+                    for scene in scenes
+
+                ),
+
+
+            "average_intensity":
+
+                round(
+
+                    total_intensity
+
+                    /
+
+                    len(scenes),
+
+                    2
+
+                )
+
+        }
+
+
+
+# ============================================================
+# Global Instance
+# ============================================================
+
+scene_service = SceneService()
