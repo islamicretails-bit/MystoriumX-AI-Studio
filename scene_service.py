@@ -6,20 +6,20 @@
 # app/services/scene_service.py
 #
 # Responsibility:
-# Coordinate video scene analysis workflow.
+# Manage documentary video scene analysis workflow.
 #
 # Flow:
 #
 # Video
 #   |
 #   ↓
-# OpenCV Detector
+# Computer Vision Detector
+#   |
+#   ↓
+# Scene Processing
 #   |
 #   ↓
 # Scene Entities
-#   |
-#   ↓
-# Pipeline
 #
 # Compatible:
 # Python 3.11
@@ -34,50 +34,24 @@ from pathlib import Path
 
 from typing import List, Dict, Any
 
+from uuid import uuid4
 
 import logging
 
 
-import uuid
 
+from app.domain.entities import SceneEntity
 
+from app.domain.enums import SceneMood
 
-from app.domain.entities import (
+from app.core.exceptions import SceneDetectionError
 
-    SceneEntity
-
-)
-
-
-
-from app.domain.enums import (
-
-    SceneMood
-
-)
-
-
-
-from app.core.exceptions import (
-
-    SceneDetectionError
-
-)
-
-
-
-from app.infrastructure.cv.opencv_detector import (
-
-    OpenCVDetector
-
-)
+from app.infrastructure.cv.opencv_detector import OpenCVDetector
 
 
 
 logger = logging.getLogger(
-
     "MystoriumX.SceneService"
-
 )
 
 
@@ -88,14 +62,14 @@ logger = logging.getLogger(
 
 class SceneService:
     """
-    Professional scene analysis service.
+    Handles video scene understanding.
 
-    Responsible for:
+    Responsibilities:
 
-    - Video scene detection
-    - Scene classification
-    - Metadata generation
-    - Domain entity creation
+    - Detect scenes
+    - Analyze intensity
+    - Assign cinematic mood
+    - Create SceneEntity objects
 
     """
 
@@ -105,7 +79,6 @@ class SceneService:
         self,
         detector: OpenCVDetector | None = None
     ) -> None:
-
 
         self.detector = (
 
@@ -118,11 +91,8 @@ class SceneService:
         )
 
 
-
         logger.info(
-
             "Scene Service initialized"
-
         )
 
 
@@ -137,10 +107,7 @@ class SceneService:
     ) -> List[SceneEntity]:
 
         """
-        Analyze documentary video.
-
-        Returns:
-            List of SceneEntity objects.
+        Analyze uploaded documentary video.
         """
 
 
@@ -155,22 +122,16 @@ class SceneService:
             )
 
 
-
         try:
 
-
             logger.info(
-
-                f"Analyzing video: {video_path}"
-
+                f"Starting scene analysis: {video_path}"
             )
 
 
+            detected_scenes = (
 
-            raw_scenes = (
-
-                self.detector
-                .detect_scenes(
+                self.detector.detect_scenes(
 
                     video_path
 
@@ -179,35 +140,25 @@ class SceneService:
             )
 
 
-
             scenes = (
 
-                self._convert_to_entities(
+                self._build_scene_entities(
 
-                    raw_scenes
+                    detected_scenes
 
                 )
 
             )
 
 
-
             logger.info(
 
-                f"Detected {len(scenes)} scenes"
+                f"{len(scenes)} scenes created"
 
             )
 
 
-
             return scenes
-
-
-
-        except SceneDetectionError:
-
-
-            raise
 
 
 
@@ -216,7 +167,7 @@ class SceneService:
 
             logger.exception(
 
-                "Scene analysis failed"
+                "Scene processing failed"
 
             )
 
@@ -225,39 +176,34 @@ class SceneService:
 
                 str(error),
 
-                "SCENE_ANALYSIS_FAILED"
+                "SCENE_PROCESSING_FAILED"
 
             )
 
 
 
     # ========================================================
-    # Convert Detector Output
+    # Build Scene Entities
     # ========================================================
 
-    def _convert_to_entities(
+    def _build_scene_entities(
         self,
-        detected_scenes: List[Dict[str, Any]]
+        scenes: List[Dict[str, Any]]
     ) -> List[SceneEntity]:
 
         """
-        Convert CV output into domain objects.
+        Convert detector output into domain entities.
         """
 
 
-        scene_entities: List[SceneEntity] = []
+        result = []
 
 
 
-        for index, scene in enumerate(
-
-            detected_scenes
-
-        ):
+        for scene in scenes:
 
 
-
-            start_time = float(
+            start = float(
 
                 scene.get(
 
@@ -270,8 +216,7 @@ class SceneService:
             )
 
 
-
-            end_time = float(
+            end = float(
 
                 scene.get(
 
@@ -284,29 +229,17 @@ class SceneService:
             )
 
 
+            intensity = float(
 
-            duration = (
+                scene.get(
 
-                end_time
+                    "intensity",
 
-                -
-
-                start_time
-
-            )
-
-
-
-            mood = (
-
-                self._detect_mood(
-
-                    scene
+                    0
 
                 )
 
             )
-
 
 
             entity = SceneEntity(
@@ -315,17 +248,17 @@ class SceneService:
 
                     f"scene_"
 
-                    f"{uuid.uuid4().hex[:8]}"
+                    f"{uuid4().hex[:8]}"
 
                 ),
 
-                start_time=start_time,
+                start_time=start,
 
-                end_time=end_time,
+                end_time=end,
 
                 duration=max(
 
-                    duration,
+                    end - start,
 
                     0
 
@@ -337,25 +270,23 @@ class SceneService:
 
                         "confidence",
 
-                        0.0
+                        0
 
                     )
 
                 ),
 
-                mood=mood.value,
+                mood=(
 
-                intensity=float(
+                    self._detect_mood(
 
-                    scene.get(
-
-                        "intensity",
-
-                        0.0
+                        scene
 
                     )
 
-                ),
+                ).value,
+
+                intensity=intensity,
 
                 description=scene.get(
 
@@ -366,8 +297,7 @@ class SceneService:
             )
 
 
-
-            scene_entities.append(
+            result.append(
 
                 entity
 
@@ -375,28 +305,25 @@ class SceneService:
 
 
 
-        return scene_entities
+        return result
 
 
 
     # ========================================================
-    # Mood Detection
+    # Detect Cinematic Mood
     # ========================================================
 
     def _detect_mood(
         self,
-        scene_data: Dict[str, Any]
+        scene: Dict[str, Any]
     ) -> SceneMood:
 
         """
-        Determine cinematic mood.
-
-        Future:
-        Can connect Vision Transformer model.
+        Determine scene emotion.
         """
 
 
-        provided_mood = scene_data.get(
+        mood = scene.get(
 
             "mood"
 
@@ -404,20 +331,18 @@ class SceneService:
 
 
 
-        if provided_mood:
+        if mood:
 
 
             try:
 
                 return SceneMood(
 
-                    provided_mood.lower()
+                    mood.lower()
 
                 )
 
-
             except ValueError:
-
 
                 pass
 
@@ -425,7 +350,7 @@ class SceneService:
 
         intensity = float(
 
-            scene_data.get(
+            scene.get(
 
                 "intensity",
 
@@ -439,58 +364,45 @@ class SceneService:
 
         if intensity >= 8:
 
-
             return SceneMood.ACTION
 
 
 
         if intensity >= 5:
 
-
             return SceneMood.TENSE
 
 
 
-        return SceneMood.UNKNOWN
+        return SceneMood.MYSTERIOUS
 
 
 
     # ========================================================
-    # Generate Scene Summary
+    # Scene Summary
     # ========================================================
 
-    def create_summary(
+    def generate_summary(
         self,
         scenes: List[SceneEntity]
     ) -> Dict[str, Any]:
 
         """
-        Generate scene analytics summary.
+        Create scene analytics.
         """
 
 
         if not scenes:
 
-
             return {
-
 
                 "total_scenes": 0,
 
+                "total_duration": 0,
 
                 "average_intensity": 0
 
             }
-
-
-
-        total_intensity = sum(
-
-            scene.intensity
-
-            for scene in scenes
-
-        )
 
 
 
@@ -504,11 +416,17 @@ class SceneService:
 
             "total_duration":
 
-                sum(
+                round(
 
-                    scene.duration
+                    sum(
 
-                    for scene in scenes
+                        scene.duration
+
+                        for scene in scenes
+
+                    ),
+
+                    2
 
                 ),
 
@@ -517,7 +435,13 @@ class SceneService:
 
                 round(
 
-                    total_intensity
+                    sum(
+
+                        scene.intensity
+
+                        for scene in scenes
+
+                    )
 
                     /
 
@@ -532,7 +456,7 @@ class SceneService:
 
 
 # ============================================================
-# Global Instance
+# Global Service Instance
 # ============================================================
 
 scene_service = SceneService()
