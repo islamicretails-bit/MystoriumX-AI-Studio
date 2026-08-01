@@ -1140,3 +1140,527 @@ if st.session_state.get(
     start_ai_pipeline(
         runtime
     )
+
+# ============================================================
+# MystoriumX AI Studio
+# Service Layer - AI Pipeline Orchestrator
+#
+# File:
+# app/services/orchestrator.py
+#
+# Responsibility:
+# Central controller for the complete documentary
+# audio generation workflow.
+# ============================================================
+
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Optional, Dict, Any, List
+import logging
+import traceback
+
+
+# Future service imports
+# These will be activated as modules are completed.
+
+# from app.services.scene_service import SceneService
+# from app.services.prompt_service import PromptService
+# from app.services.export_service import ExportService
+
+# from app.infrastructure.ml.musicgen_provider import MusicGenProvider
+# from app.infrastructure.dsp.mastering_engine import MasteringEngine
+
+
+
+logger = logging.getLogger(
+    "MystoriumX.Orchestrator"
+)
+
+
+
+# ============================================================
+# Pipeline Result Model
+# ============================================================
+
+@dataclass
+class PipelineResult:
+    """
+    Stores final pipeline execution result.
+    """
+
+    success: bool = False
+
+    project_id: Optional[str] = None
+
+    generated_audio: Optional[Path] = None
+
+    mastered_audio: Optional[Path] = None
+
+    exported_files: List[Path] = field(
+        default_factory=list
+    )
+
+    metadata: Dict[str, Any] = field(
+        default_factory=dict
+    )
+
+    error_message: Optional[str] = None
+
+
+
+# ============================================================
+# Pipeline Configuration Model
+# ============================================================
+
+@dataclass
+class PipelineConfig:
+    """
+    Configuration required for AI generation pipeline.
+    """
+
+    video_path: Optional[Path] = None
+
+    script_path: Optional[Path] = None
+
+    narration_path: Optional[Path] = None
+
+
+    cinematic_prompt: str = ""
+
+
+    music_style: str = (
+        "Hollywood Documentary"
+    )
+
+
+    intensity: int = 7
+
+
+    output_format: str = (
+        "wav"
+    )
+
+
+    enable_scene_analysis: bool = True
+
+    enable_prompt_enhancement: bool = True
+
+    enable_mastering: bool = True
+
+    enable_waveform: bool = True
+
+
+
+# ============================================================
+# Main Orchestrator
+# ============================================================
+
+class MystoriumXOrchestrator:
+    """
+    Main AI documentary audio pipeline controller.
+
+    This class coordinates:
+
+    1. Scene understanding
+    2. AI prompt enhancement
+    3. Music generation
+    4. Audio mastering
+    5. Export processing
+
+    Individual engines remain independent.
+    """
+
+
+
+    def __init__(
+        self,
+
+        # scene_service: SceneService,
+        # prompt_service: PromptService,
+        # music_provider: MusicGenProvider,
+        # mastering_engine: MasteringEngine,
+        # export_service: ExportService,
+
+    ) -> None:
+
+
+        self.scene_service = None
+
+        self.prompt_service = None
+
+        self.music_provider = None
+
+        self.mastering_engine = None
+
+        self.export_service = None
+
+
+
+        logger.info(
+            "MystoriumX Orchestrator initialized"
+        )
+
+
+
+    # ========================================================
+    # Public Pipeline Entry
+    # ========================================================
+
+    def execute(
+        self,
+        config: PipelineConfig
+    ) -> PipelineResult:
+        """
+        Executes complete documentary
+        soundtrack generation workflow.
+        """
+
+
+        result = PipelineResult()
+
+
+
+        try:
+
+            logger.info(
+                "Starting AI documentary pipeline"
+            )
+
+
+            self._validate_inputs(
+                config
+            )
+
+
+
+            project_data = (
+                self._prepare_project(
+                    config
+                )
+            )
+
+
+
+            scenes = (
+                self._analyze_scenes(
+                    project_data,
+                    config
+                )
+            )
+
+
+
+            enhanced_prompt = (
+                self._build_music_prompt(
+                    scenes,
+                    config
+                )
+            )
+
+
+
+            generated_audio = (
+                self._generate_music(
+                    enhanced_prompt,
+                    config
+                )
+            )
+
+
+
+            mastered_audio = (
+                self._master_audio(
+                    generated_audio,
+                    config
+                )
+            )
+
+
+
+            exported_files = (
+                self._export_results(
+                    mastered_audio,
+                    config
+                )
+            )
+
+
+
+            result.success = True
+
+            result.generated_audio = (
+                generated_audio
+            )
+
+            result.mastered_audio = (
+                mastered_audio
+            )
+
+            result.exported_files = (
+                exported_files
+            )
+
+
+            result.metadata = {
+
+                "music_style":
+                    config.music_style,
+
+                "intensity":
+                    config.intensity,
+
+                "output":
+                    config.output_format
+
+            }
+
+
+
+            logger.info(
+                "Pipeline completed successfully"
+            )
+
+
+
+        except Exception as error:
+
+
+            logger.error(
+                "Pipeline failed"
+            )
+
+
+            logger.error(
+                traceback.format_exc()
+            )
+
+
+            result.error_message = (
+                str(error)
+            )
+
+
+
+        return result
+
+
+
+    # ========================================================
+    # Validation
+    # ========================================================
+
+    def _validate_inputs(
+        self,
+        config: PipelineConfig
+    ) -> None:
+
+        """
+        Validate required project files.
+        """
+
+
+        if not config.video_path:
+
+            raise ValueError(
+                "Video file is required."
+            )
+
+
+        if not config.narration_path:
+
+            raise ValueError(
+                "Narration file is required."
+            )
+
+
+
+    # ========================================================
+    # Project Preparation
+    # ========================================================
+
+    def _prepare_project(
+        self,
+        config: PipelineConfig
+    ) -> Dict[str, Any]:
+
+        """
+        Prepare project metadata.
+        """
+
+
+        return {
+
+            "video":
+                config.video_path,
+
+            "script":
+                config.script_path,
+
+            "narration":
+                config.narration_path,
+
+            "style":
+                config.music_style
+
+        }
+
+
+
+    # ========================================================
+    # Scene Analysis
+    # ========================================================
+
+    def _analyze_scenes(
+        self,
+        project_data: Dict[str, Any],
+        config: PipelineConfig
+    ) -> List[Dict[str, Any]]:
+
+        """
+        Analyze video scenes.
+
+        Future connection:
+        OpenCV + Transformers
+        """
+
+        if not config.enable_scene_analysis:
+
+            return []
+
+
+
+        logger.info(
+            "Scene analysis requested"
+        )
+
+
+        return []
+
+
+
+    # ========================================================
+    # Prompt Engineering
+    # ========================================================
+
+    def _build_music_prompt(
+        self,
+        scenes: List[Dict[str, Any]],
+        config: PipelineConfig
+    ) -> str:
+
+        """
+        Creates enhanced cinematic music prompt.
+        """
+
+
+        prompt = (
+
+            f"{config.music_style} soundtrack, "
+
+            f"emotional intensity {config.intensity}/10, "
+
+            "cinematic documentary atmosphere"
+
+        )
+
+
+        if config.cinematic_prompt:
+
+            prompt += (
+                ", "
+                + config.cinematic_prompt
+            )
+
+
+        return prompt
+
+
+
+    # ========================================================
+    # Music Generation
+    # ========================================================
+
+    def _generate_music(
+        self,
+        prompt: str,
+        config: PipelineConfig
+    ) -> Optional[Path]:
+
+        """
+        Generate AI soundtrack.
+
+        Future:
+        MusicGen / AudioCraft integration.
+        """
+
+
+        logger.info(
+            "Music generation started"
+        )
+
+
+        return None
+
+
+
+    # ========================================================
+    # Audio Mastering
+    # ========================================================
+
+    def _master_audio(
+        self,
+        audio_file: Optional[Path],
+        config: PipelineConfig
+    ) -> Optional[Path]:
+
+        """
+        Professional mastering stage.
+        """
+
+
+        if not config.enable_mastering:
+
+            return audio_file
+
+
+
+        logger.info(
+            "Audio mastering requested"
+        )
+
+
+        return audio_file
+
+
+
+    # ========================================================
+    # Export
+    # ========================================================
+
+    def _export_results(
+        self,
+        audio_file: Optional[Path],
+        config: PipelineConfig
+    ) -> List[Path]:
+
+        """
+        Export final soundtrack files.
+        """
+
+
+        logger.info(
+            "Export preparation started"
+        )
+
+
+        if audio_file:
+
+            return [
+                audio_file
+            ]
+
+
+        return []
